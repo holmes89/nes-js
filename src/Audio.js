@@ -6,7 +6,8 @@ function Audio() {
 
   //
 
-  var audioContext = AudioContext || webkitAudioContext;
+  var audioContext = typeof AudioContext !== 'undefined' ? AudioContext :
+    (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : undefined);
 
   if(audioContext === undefined)
     throw new Error('This browser seems not to support AudioContext.');
@@ -55,6 +56,19 @@ Object.assign(Audio.prototype, {
       data[i] = this.bufferIndex === 0 ? 0.0 : this.buffer[this.bufferIndex - 1];
 
     this.bufferIndex = 0;
+  },
+
+  /**
+   * Stops audio output and releases the AudioContext. Idempotent.
+   */
+  close: function() {
+    if(this.context === null)
+      return;
+
+    this.scriptProcessor.onaudioprocess = null;
+    this.scriptProcessor.disconnect();
+    this.context.close();
+    this.context = null;
   },
 
   /**

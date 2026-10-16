@@ -2,8 +2,12 @@
   "name": "nes-js",
   "version": "0.0.1",
   "description": "JavaScript NES emulator",
+  "type": "module",
   "main": "index.js",
+  "module": "index.js",
+  "sideEffects": false,
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "all": "npm run build && npm run build-uglify",
     "build": "webpack index.js build/nes.js",
     "build-uglify": "webpack -p index.js build/nes.min.js"
