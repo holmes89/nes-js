@@ -25,6 +25,31 @@ This is JavaScript NES(Famicom) emulator which runs on browser.
 - Audio support with WebAudio
 - Runs on browser
 
+## Embedding (React, bundlers)
+
+The package is an ES module (`import NesJs from 'nes-js'`). The host owns input and lifecycle:
+
+```js
+const nes = new NesJs.Nes();
+nes.setRom(new NesJs.Rom(arrayBuffer));
+nes.setDisplay(new NesJs.Display(canvas));
+nes.setAudio(new NesJs.Audio());
+const down = (e) => nes.handleKeyDown(e);
+const up = (e) => nes.handleKeyUp(e);
+window.addEventListener('keydown', down);
+window.addEventListener('keyup', up);
+nes.bootup();
+nes.run();
+
+// on unmount
+window.removeEventListener('keydown', down);
+window.removeEventListener('keyup', up);
+nes.destroy(); // cancels the frame loop and closes the AudioContext; safe to call twice
+```
+
+Keys: arrows = D-pad, Z = B, X = A, Enter = Start, Shift or Space = Select. Only mapped keys are `preventDefault`-ed.
+`npm test` runs the lifecycle tests with node's built-in test runner.
+
 ## Browser
 
 ### How to use

@@ -37,7 +37,8 @@ function Nes() {
   // for requestAnimationFrame()
 
   var self = this;
-  this.runFunc = function() { self.run(); };
+  this.rafId = null;
+  this.runFunc = function() { self.rafId = null; self.run(); };
 
   // event listeners
 
@@ -58,6 +59,7 @@ Object.assign(Nes.prototype, {
   KEY_TO_PAD_BUTTONS: {
     13: Joypad.BUTTONS.START,   // enter
     32: Joypad.BUTTONS.SELECT,  // space
+    16: Joypad.BUTTONS.SELECT,  // shift
     37: Joypad.BUTTONS.LEFT,    // left arrow
     38: Joypad.BUTTONS.UP,      // up arrow
     39: Joypad.BUTTONS.RIGHT,   // right arrow
@@ -139,6 +141,32 @@ Object.assign(Nes.prototype, {
    */
   stop: function() {
     this.state = this.STATES.STOP;
+    this.cancelFrame();
+  },
+
+  /**
+   * Stops the emulation loop and releases audio and listeners.
+   * Safe to call more than once. The instance can not be resumed afterwards.
+   */
+  destroy: function() {
+    this.stop();
+    this.state = this.STATES.POWER_OFF;
+    this.audioEnabled = false;
+    this.onFpsUpdates = [];
+
+    var audio = this.apu.audio;
+    if(audio !== null && typeof audio.close === 'function')
+      audio.close();
+  },
+
+  /**
+   * Cancels the pending animation frame, if any.
+   */
+  cancelFrame: function() {
+    if(this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
   },
 
   /**
@@ -153,6 +181,9 @@ Object.assign(Nes.prototype, {
    *
    */
   run: function() {
+    // Never keep two frame loops alive (e.g. resume() while already running).
+    this.cancelFrame();
+
     this.measureFps();
 
     var cycles = (341 * 262 / 3) | 0; // TODO: temporal
@@ -161,7 +192,7 @@ Object.assign(Nes.prototype, {
     }
 
     if(this.state === this.STATES.RUN)
-      requestAnimationFrame(this.runFunc);
+      this.rafId = requestAnimationFrame(this.runFunc);
   },
 
   /**
@@ -191,15 +222,19 @@ Object.assign(Nes.prototype, {
 
   // key input handlers
 
+  // Only keys mapped to a pad button are consumed so the host page keeps
+  // the rest (F5, Tab, browser shortcuts, ...).
   handleKeyDown: function(e) {
-    if(this.KEY_TO_PAD_BUTTONS[e.keyCode] !== undefined)
-      this.pad1.pressButton(this.KEY_TO_PAD_BUTTONS[e.keyCode]);
+    if(this.KEY_TO_PAD_BUTTONS[e.keyCode] === undefined)
+      return;
+    this.pad1.pressButton(this.KEY_TO_PAD_BUTTONS[e.keyCode]);
     e.preventDefault();
   },
 
   handleKeyUp: function(e) {
-    if(this.KEY_TO_PAD_BUTTONS[e.keyCode] !== undefined)
-      this.pad1.releaseButton(this.KEY_TO_PAD_BUTTONS[e.keyCode]);
+    if(this.KEY_TO_PAD_BUTTONS[e.keyCode] === undefined)
+      return;
+    this.pad1.releaseButton(this.KEY_TO_PAD_BUTTONS[e.keyCode]);
     e.preventDefault();
   },
 
